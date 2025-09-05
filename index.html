@@ -2,35 +2,34 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Course Mapping Planner</title>
-
-    <!-- Tailwind (for the utility classes used in the UI) -->
+    <!-- Tailwind (for the styling used in the components) -->
     <script src="https://cdn.tailwindcss.com"></script>
-
     <!-- React 18 UMD -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-
+    <!-- Babel runtime so we can use JSX in course-mapper.js -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-      /* Small helper to show runtime errors onscreen */
-      #error-overlay {
-        position: fixed; inset: 0; display: none; padding: 16px;
-        background: rgba(255, 245, 245, 0.96); color: #7f1d1d; z-index: 9999;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        overflow: auto;
-      }
-      #error-overlay pre { white-space: pre-wrap; }
+      /* a tiny error overlay so blank pages are easier to debug */
+      #err-overlay {position:fixed;inset:0;background:#1118;color:#fff;padding:16px;display:none;z-index:9999;white-space:pre-wrap;}
     </style>
   </head>
   <body class="bg-slate-50">
-    <div id="root" class="min-h-screen"></div>
-    <div id="error-overlay"><pre></pre></div>
+    <div id="root"></div>
+    <pre id="err-overlay"></pre>
 
-    <!-- Your app (no JSX; plain JS) -->
-    <script defer src="./course-mapper.js"></script>
+    <!-- Your app code (JSX). Using Babel to transpile in the browser. -->
+    <script type="text/babel" data-presets="react" src="./course-mapper.js"></script>
+
+    <script>
+      // Show runtime errors so you never get a silent blank page again.
+      window.addEventListener("error", (e) => {
+        const box = document.getElementById("err-overlay");
+        box.style.display = "block";
+        box.textContent = (e.error && e.error.stack) ? e.error.stack : (e.message || String(e));
+      });
+    </script>
   </body>
 </html>
