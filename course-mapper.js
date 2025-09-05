@@ -5,8 +5,8 @@ const { useEffect, useMemo, useState } = React;
 // === Utility helpers ========================================================
 const uc = (s) => s.trim().toUpperCase();
 const isMeta = (k) => k.startsWith("_");
-// normalize labels for robust matching
-const norm = (s) => s.toLowerCase().replace(/\s+/g, ' ').replace(/\s*[\/,]\s*/g, ' / ').trim();
+const norm = (s) => s.toLowerCase().replace(/\s+/g, " ").replace(/\s*[\/,]\s*/g, " / ").trim();
+const joinList = (arr) => (Array.isArray(arr) ? arr.join(", ") : String(arr || ""));
 
 // Persist simple state in localStorage
 const useLocal = (key, initial) => {
@@ -19,13 +19,14 @@ const useLocal = (key, initial) => {
     }
   });
   useEffect(() => {
-    try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+    try {
+      localStorage.setItem(key, JSON.stringify(val));
+    } catch {}
   }, [key, val]);
   return [val, setVal];
 };
 
-// === Embedded requirement presets (from your finalized JSONs) ===============
-// You can still upload new JSON files to add more programs.
+// === Embedded requirement presets ===========================================
 const WATER_SCIENCE = {"1A":{"_requirement":{"type":"all-categories-required","description":"One course is required from each of the following subjects."},"Chemistry":["CHEM 120"],"Math":["MATH 127"],"Physics":["PHYS 111","PHYS 121"]},"1B":{"_requirement":{"type":"multi-category-limit","description":"Select at least 6 courses from the following 6 categories. No more than 2 courses per category.","min_total_courses":6,"max_per_category":2,"valid_categories":["Biology","Computer Programming","Chemistry","Mathematics","Physics","Statistics"]},"Biology":["BIOL 150","BIOL 165"],"Computer Programming":["CS 115","CS 116","CS 105","CS 106"],"Chemistry":["CHEM 123","CHEM 220","CHEM 264","CHEM 266"],"Mathematics":["MATH 106","MATH 114","MATH 128"],"Physics":["PHYS 112","PHYS 122"],"Statistics":["STAT 202"]},"2A":{"_requirement":{"type":"all-categories-required","description":"One course is required from each of the following 4 categories."},"Field Techniques":["EARTH 390"],"Mineralogy and Petrology":["EARTH 231"],"Sedimentation and Stratigraphy":["EARTH 235"],"Structural Geology":["EARTH 238"]},"2B":{"_requirement":{"type":"subgroup-selection","description":"Select at least 1 and at most 2 courses from each of the 3 subgroups. No more than one course per subject.","min_per_group":1,"max_per_group":2,"max_per_subject":1},"Group 1":{"Geochemistry":["EARTH 221"],"Geophysics":["EARTH 260"]},"Group 2":{"Hydrogeology / Hydrology":["EARTH 458","GEOG 407"],"Engineering Geology":[]},"Group 3":{"Geomorphology or Soil Science":["EARTH 342","GEOG 201"],"Glacial Geology":[],"Remote Sensing / GIS":[]}},"2C":{"_requirement":{"type":"elective-geoscience","description":"Select up to 9 courses relevant to geoscience (2nd year or higher, science credit, and not used to fulfill other categories).","min_total_courses":9,"notes":["Courses from 2A/2B may count here if not used in those requirements.","Advanced versions of 2A/2B topics may also apply.","One course cannot fulfill multiple requirements."]},"Field Techniques":["EARTH 223"],"Hydrology / Hydrogeology":["EARTH 355"],"Earth Systems":["EARTH 444"],"Geochemistry":["EARTH 421"],"Geomorphology / Surficial":["GEOG 453"],"Sedimentology":["EARTH 333"]}};
 
 const HYDROGEOLOGY = {"1A":{"_requirement":{"type":"all-categories-required","description":"One course is required from each of the following subjects."},"Chemistry":["CHEM 120"],"Math":["MATH 127"],"Physics":["PHYS 111","PHYS 121"]},"1B":{"_requirement":{"type":"multi-category-limit","description":"Select at least 6 courses from the following 6 categories. No more than 2 courses per category.","min_total_courses":6,"max_per_category":2,"valid_categories":["Biology","Computer Programming","Chemistry","Mathematics","Physics","Statistics"]},"Biology":["BIOL 120","BIOL 150","BIOL 165","BIOL 240"],"Computer Programming":["CS 115","CS 116","CS 105","CS 106"],"Chemistry":["CHEM 123","CHEM 264","CHEM 266"],"Mathematics":["MATH 106","MATH 114","MATH 128"],"Physics":["PHYS 112","PHYS 122"],"Statistics":["STAT 202"]},"2A":{"_requirement":{"type":"all-categories-required","description":"One course is required from each of the following 4 categories."},"Field Techniques":["EARTH 390"],"Mineralogy and Petrology":["EARTH 231"],"Sedimentation and Stratigraphy":["EARTH 235"],"Structural Geology":["EARTH 238"]},"2B":{"_requirement":{"type":"subgroup-selection","description":"Select at least 1 and at most 2 courses from each of the 3 subgroups. No more than one course per subject.","min_per_group":1,"max_per_group":2,"max_per_subject":1},"Group 1":{"Geochemistry":["EARTH 221"],"Geophysics":["EARTH 260"]},"Group 2":{"Hydrogeology / Hydrology":["EARTH 458"],"Sedimentary Petrology":["EARTH 232"]},"Group 3":{"Geomorphology":["EARTH 342"]}},"2C":{"_requirement":{"type":"elective-geoscience","description":"Select up to 9 courses relevant to geoscience (2nd year or higher, science credit, and not used to fulfill other categories).","min_total_courses":9,"notes":["Courses from 2A/2B may count here if not used in those requirements.","Advanced versions of 2A/2B topics may also apply.","One course cannot fulfill multiple requirements."]},"Field Techniques":["EARTH 223"],"Communication":["EARTH 436A","EARTH 436B"],"Sedimentology":["EARTH 333"],"Hydrology / Hydrogeology":["EARTH 456","EARTH 459"],"Geochemistry":["EARTH 421"],"Geomorphology / Surficial":["EARTH 440"],"Geotechnical":["CIVE 353"]}};
@@ -44,30 +45,33 @@ const DEFAULT_REQS = {
   "Hydrogeology": HYDROGEOLOGY,
 };
 
-// === Core evaluator (ports your Python logic) ===============================
+// === Core evaluator =========================================================
 function evaluateUserCourses(userCourses, requirementData) {
   const completed = {};
   const remaining = {};
 
-  // 1A: all-categories-required
+  // 1A
   const req1a = requirementData?.["1A"] ?? {};
-  const rule1a = req1a?.["_requirement"] ?? {};
+  const rule1a = req1a?._requirement ?? {};
   if (rule1a?.type === "all-categories-required") {
-    const c = {}, r = {};
+    const c = {},
+      r = {};
     Object.entries(req1a).forEach(([cat, list]) => {
       if (isMeta(cat)) return;
       const matched = [...new Set(userCourses.filter((x) => list.includes(x)))];
-      if (matched.length) c[cat] = matched; else r[cat] = list;
+      if (matched.length) c[cat] = matched;
+      else r[cat] = list;
     });
     if (Object.keys(c).length) completed["1A"] = c;
     if (Object.keys(r).length) remaining["1A"] = r;
   }
 
-  // 1B: multi-category-limit
+  // 1B
   const req1b = requirementData?.["1B"] ?? {};
-  const rule1b = req1b?.["_requirement"] ?? {};
+  const rule1b = req1b?._requirement ?? {};
   if (rule1b?.type === "multi-category-limit") {
-    const c = {}, r = {};
+    const c = {},
+      r = {};
     let total = 0;
     for (const cat of rule1b.valid_categories || []) {
       const list = req1b?.[cat] || [];
@@ -90,26 +94,28 @@ function evaluateUserCourses(userCourses, requirementData) {
     }
   }
 
-  // 2A: all-categories-required
+  // 2A
   const req2a = requirementData?.["2A"] ?? {};
-  const rule2a = req2a?.["_requirement"] ?? {};
+  const rule2a = req2a?._requirement ?? {};
   if (rule2a?.type === "all-categories-required") {
-    const c = {}, r = {};
+    const c = {},
+      r = {};
     Object.entries(req2a).forEach(([cat, list]) => {
       if (isMeta(cat)) return;
       const matched = [...new Set(userCourses.filter((x) => list.includes(x)))];
-      if (matched.length) c[cat] = matched; else r[cat] = list;
+      if (matched.length) c[cat] = matched;
+      else r[cat] = list;
     });
     completed["2A"] = c;
     if (Object.keys(r).length) remaining["2A"] = r;
   }
 
-  // 2B: subgroup-selection
+  // 2B
   const req2b = requirementData?.["2B"] ?? {};
-  const rule2b = req2b?.["_requirement"] ?? {};
+  const rule2b = req2b?._requirement ?? {};
   if (rule2b?.type === "subgroup-selection") {
     const comp2b = {};
-    the_rem2b = {};
+    const rem2b = {};
     const groupNames = Object.keys(req2b).filter((g) => !isMeta(g));
 
     for (const groupName of groupNames) {
@@ -117,6 +123,7 @@ function evaluateUserCourses(userCourses, requirementData) {
       const groupCompleted = [];
       const groupRemaining = {};
       let count = 0;
+
       for (const [subject, list] of Object.entries(group)) {
         if (count >= (rule2b.max_per_group || Infinity)) break;
         const matched = userCourses.filter((x) => list.includes(x));
@@ -132,21 +139,22 @@ function evaluateUserCourses(userCourses, requirementData) {
           groupRemaining[subject] = list;
         }
       }
+
       if (count >= (rule2b.min_per_group || 0)) comp2b[groupName] = groupCompleted;
       if (count < (rule2b.min_per_group || 0)) {
-        the_rem2b[groupName] = {
+        rem2b[groupName] = {
           needed_more_courses: (rule2b.min_per_group || 0) - count,
           remaining_subjects: groupRemaining,
         };
       }
     }
     completed["2B"] = comp2b;
-    if (Object.keys(the_rem2b).length) remaining["2B"] = the_rem2b;
+    if (Object.keys(rem2b).length) remaining["2B"] = rem2b;
   }
 
-  // 2C: elective-geoscience (avoid double counting)
+  // 2C (avoid double counting)
   const req2c = requirementData?.["2C"] ?? {};
-  const rule2c = req2c?.["_requirement"] ?? {};
+  const rule2c = req2c?._requirement ?? {};
   if (rule2c?.type === "elective-geoscience") {
     const used = new Set();
     for (const sec of Object.values(completed)) {
@@ -174,7 +182,10 @@ function evaluateUserCourses(userCourses, requirementData) {
     for (const [subject, list] of Object.entries(req2c)) {
       if (isMeta(subject)) continue;
       const valid = [...new Set(list.filter((x) => userCourses.includes(x) && !used.has(x)))];
-      if (valid.length) { c[subject] = valid; allValid.push(...valid); }
+      if (valid.length) {
+        c[subject] = valid;
+        allValid.push(...valid);
+      }
     }
     if (allValid.length >= (rule2c.min_total_courses || 0)) {
       completed["2C"] = c;
@@ -230,63 +241,8 @@ function determineStream(completed) {
   return streams;
 }
 
-// Suggestions builder
-function computeSuggestions(remaining) {
-  const order = ["1A", "1B", "2A", "2B", "2C"];
-  const picks = [];
-  for (const sec of order) {
-    const rem = remaining?.[sec];
-    if (!rem) continue;
-    if (sec === "1B" && rem.remaining_by_category) {
-      const need = rem.needed_more_courses || 0;
-      const pool = Object.entries(rem.remaining_by_category).flatMap(([cat, list]) => list.map((c) => ({ section: sec, category: cat, course: c })));
-      picks.push({ section: sec, need, options: pool });
-    } else if (sec === "2B" && typeof rem === "object") {
-      for (const [group, data] of Object.entries(rem)) {
-        const need = data.needed_more_courses || 0;
-        const pool = Object.entries(data.remaining_subjects || {}).flatMap(([subj, list]) => list.map((c) => ({ section: sec, group, category: subj, course: c })));
-        picks.push({ section: `${sec} - ${group}`, need, options: pool });
-      }
-    } else if (typeof rem === "object") {
-      const pool = Object.entries(rem).flatMap(([cat, list]) => Array.isArray(list) ? list.map((c) => ({ section: sec, category: cat, course: c })) : []);
-      if (pool.length) picks.push({ section: sec, need: pool.length, options: pool });
-    }
-  }
-  return picks;
-}
+// === UI =====================================================================
 
-// === Self-tests =============================================================
-function runSelfTests() {
-  const results = [];
-  // 1A Chemistry match
-  {
-    const courses = ["CHEM 120"]; const { completed } = evaluateUserCourses(courses, WATER_SCIENCE);
-    const pass = !!(completed["1A"] && completed["1A"].Chemistry && completed["1A"].Chemistry.includes("CHEM 120"));
-    results.push({ name: "1A Chemistry match", pass, details: completed["1A"] });
-  }
-  // 1B min total enforcement
-  {
-    const courses = ["CS 115", "CS 116", "MATH 106"]; const { remaining } = evaluateUserCourses(courses, WATER_SCIENCE);
-    const need = remaining?.["1B"]?.needed_more_courses; const pass = need === 3; results.push({ name: "1B min total", pass, details: { need } });
-  }
-  // 2B subgroup selection (Geoscience) one per group
-  {
-    const courses = ["EARTH 221", "EARTH 331", "EARTH 342"]; const { completed, remaining } = evaluateUserCourses(courses, GEOSCIENCE);
-    const g1 = completed?.["2B"]?.["Group 1"]; const g2 = completed?.["2B"]?.["Group 2"]; const g3 = completed?.["2B"]?.["Group 3"]; const pass = !!(g1 && g1.length && g2 && g2.length && g3 && g3.length) && !remaining?.["2B"]; results.push({ name: "2B subgroup coverage", pass, details: completed["2B"] });
-  }
-  // 2C no double-counting
-  {
-    const courses = ["EARTH 231", "EARTH 223"]; const { completed } = evaluateUserCourses(courses, GEOSCIENCE);
-    const usedIn2A = !!completed?.["2A"]?.["Mineralogy and Petrology"]; const count2C = completed?.["2C"] ? Object.values(completed["2C"]).flat().length : 0; const pass = usedIn2A && count2C === 1; results.push({ name: "2C no double-counting", pass, details: { usedIn2A, count2C } });
-  }
-  // Stream detection: Geology via Sedimentology
-  {
-    const courses = ["EARTH 221", "EARTH 331", "EARTH 333"]; const { completed } = evaluateUserCourses(courses, GEOSCIENCE); const streams = determineStream(completed); const pass = streams.includes("Geology"); results.push({ name: "Stream detection: Geology", pass, details: { streams } });
-  }
-  return results;
-}
-
-// === UI ====================================================================
 const Chip = ({ text, onRemove }) => (
   <span className="inline-flex items-center gap-2 bg-gray-100 rounded-full px-3 py-1 text-sm shadow-sm mr-2 mb-2">
     <span className="font-medium tracking-wide">{text}</span>
@@ -298,70 +254,104 @@ const Chip = ({ text, onRemove }) => (
   </span>
 );
 
-const SectionCard = ({ title, completed = {}, remaining = {} }) => {
+/** Special renderer for Section 2B remaining */
+function Remaining2B({ remaining }) {
+  if (!remaining || !Object.keys(remaining).length) {
+    return <div className="text-gray-400 text-sm">None</div>;
+  }
+  return (
+    <div className="space-y-4">
+      {Object.entries(remaining).map(([groupName, data]) => (
+        <div key={groupName} className="rounded-xl border p-3">
+          <div className="flex items-center justify-between mb-1">
+            <div className="text-sm font-semibold">{groupName}</div>
+            {"needed_more_courses" in data && (
+              <span className="text-xs rounded-full px-2 py-0.5 bg-gray-100">
+                Need ~ {data.needed_more_courses}
+              </span>
+            )}
+          </div>
+          <div className="mt-1">
+            {Object.entries(data.remaining_subjects || {}).map(([subject, list]) => (
+              <div key={subject} className="mb-1">
+                <span className="inline-flex items-center bg-gray-100 rounded-full px-3 py-1 text-sm shadow-sm mr-2 mb-2">
+                  <span className="font-medium">{subject}:</span>
+                  <span className="ml-2">{joinList(list)}</span>
+                </span>
+              </div>
+            ))}
+            {!Object.keys(data.remaining_subjects || {}).length && (
+              <div className="text-gray-400 text-xs">No remaining subjects.</div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Completed2B({ completed }) {
   const hasCompleted = completed && Object.keys(completed).length > 0;
-  const hasRemaining = remaining && Object.keys(remaining).length > 0;
+  if (!hasCompleted) return <div className="text-gray-400 text-sm">None</div>;
+
+  return (
+    <div className="space-y-2">
+      {Object.entries(completed).map(([groupName, arr]) => (
+        <div key={groupName}>
+          <div className="text-sm font-semibold mb-1">{groupName}</div>
+          <div className="mt-1">
+            {(Array.isArray(arr) ? arr : []).map((obj, i) => {
+              const [[subject, course]] = Object.entries(obj);
+              return <Chip key={groupName + i} text={`${subject}: ${course}`} />;
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function GenericList({ data, labelize = (k) => k }) {
+  const has = data && Object.keys(data).length > 0;
+  if (!has) return <div className="text-gray-400 text-sm">None</div>;
+  return (
+    <div className="space-y-2">
+      {Object.entries(data).map(([cat, val]) => (
+        <div key={cat}>
+          <div className="text-sm font-semibold">{labelize(cat)}</div>
+          <div className="mt-1">
+            {Array.isArray(val) ? (
+              val.map((v, i) => <Chip key={cat + i} text={String(v)} />)
+            ) : typeof val === "object" ? (
+              Object.entries(val).map(([k, v]) => <Chip key={cat + k} text={`${k}: ${v}`} />)
+            ) : (
+              <Chip text={String(val)} />
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SectionCard({ title, sectionKey, completed = {}, remaining = {} }) {
+  const is2B = sectionKey === "2B";
   return (
     <div className="rounded-2xl shadow p-5 bg-white border border-gray-100">
       <h3 className="text-lg font-semibold mb-3">{title}</h3>
       <div className="grid md:grid-cols-2 gap-4">
         <div>
           <h4 className="font-medium text-green-600 mb-2">Completed</h4>
-          {hasCompleted ? (
-            <div className="space-y-2">
-              {Object.entries(completed).map(([cat, val]) => (
-                <div key={cat}>
-                  <div className="text-sm font-semibold">{cat}</div>
-                  <div className="mt-1">
-                    {Array.isArray(val)
-                      ? val.map((v, i) => <Chip key={cat + i} text={String(v)} />)
-                      : typeof val === "object"
-                      ? Object.entries(val).map(([k, v]) => <Chip key={cat + k} text={`${k}: ${v}`} />)
-                      : <Chip text={String(val)} />}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-gray-400 text-sm">None</div>
-          )}
+          {is2B ? <Completed2B completed={completed} /> : <GenericList data={completed} />}
         </div>
         <div>
           <h4 className="font-medium text-rose-600 mb-2">Remaining</h4>
-          {hasRemaining ? (
-            <div className="space-y-2">
-              {Object.entries(remaining).map(([cat, val]) => (
-                <div key={cat}>
-                  <div className="text-sm font-semibold">{cat}</div>
-                  <div className="mt-1">
-                    {Array.isArray(val)
-                      ? val.map((v, i) => <Chip key={cat + i} text={String(v)} />)
-                      : typeof val === "object"
-                      ? Object.entries(val).map(([k, v]) => (
-                          <div key={cat + k} className="mb-1">
-                            <span className="text-xs uppercase tracking-wide text-gray-500 mr-2">{k}</span>
-                            {Array.isArray(v)
-                              ? v.map((x, j) => <Chip key={cat + k + j} text={String(x)} />)
-                              : typeof v === "object"
-                              ? Object.entries(v).map(([kk, vv]) => (
-                                  <Chip key={cat + k + kk} text={`${kk}: ${String(vv)}`} />
-                                ))
-                              : <Chip text={String(v)} />}
-                          </div>
-                        ))
-                      : <Chip text={String(val)} />}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-gray-400 text-sm">None</div>
-          )}
+          {is2B ? <Remaining2B remaining={remaining} /> : <GenericList data={remaining} />}
         </div>
       </div>
     </div>
   );
-};
+}
 
 function CourseMapperApp() {
   const [program, setProgram] = useLocal("cm:program", "Water Science");
@@ -372,7 +362,7 @@ function CourseMapperApp() {
   const [courses, setCourses] = useLocal("cm:courses:parsed", []);
   const [requirementsMap, setRequirementsMap] = useLocal("cm:reqs:v3", DEFAULT_REQS);
 
-  // one-time migrate old key and ensure built-ins exist
+  // migrate + ensure built-ins
   useEffect(() => {
     try {
       const oldRaw = localStorage.getItem("cm:reqs:v2") || localStorage.getItem("cm:reqs");
@@ -402,11 +392,15 @@ function CourseMapperApp() {
     return evaluateUserCourses(courses, reqData);
   }, [courses, reqData]);
 
-  const streams = useMemo(() => (program.toLowerCase() === "geoscience" ? determineStream(completed) : []), [completed, program]);
+  const streams = useMemo(
+    () => (program.toLowerCase() === "geoscience" ? determineStream(completed) : []),
+    [completed, program]
+  );
   const suggestions = useMemo(() => computeSuggestions(remaining), [remaining]);
 
   const onUpload = async (e) => {
-    const file = e.target.files?.[0]; if (!file) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
     const text = await file.text();
     try {
       const json = JSON.parse(text);
@@ -415,17 +409,31 @@ function CourseMapperApp() {
       setProgram(guessed);
     } catch {
       alert("Invalid JSON file.");
-    } finally { e.target.value = ""; }
+    } finally {
+      e.target.value = "";
+    }
   };
 
   const restoreDefaults = () => setRequirementsMap({ ...DEFAULT_REQS });
 
   const exportPlan = () => {
-    const payload = { program, courses, completed, remaining, streams, generatedAt: new Date().toISOString() };
+    const payload = {
+      program,
+      courses,
+      completed,
+      remaining,
+      streams,
+      generatedAt: new Date().toISOString(),
+    };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `course-plan-${program.replace(/\s+/g, "_").toLowerCase()}.json`;
-    document.body.appendChild(a); a.click(); URL.revokeObjectURL(url); a.remove();
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `course-plan-${program.replace(/\s+/g, "_").toLowerCase()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(url);
+    a.remove();
   };
 
   const [tests, setTests] = useState([]);
@@ -437,15 +445,21 @@ function CourseMapperApp() {
         <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">Course Mapping Planner</h1>
-            <p className="text-sm text-slate-600 mt-1">Paste your completed courses, pick a program, and get a clear checklist plus next-course suggestions.</p>
+            <p className="text-sm text-slate-600 mt-1">
+              Paste your completed courses, pick a program, and get a clear checklist plus next-course suggestions.
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border bg-white shadow-sm cursor-pointer">
               <span className="text-sm font-medium">Upload requirements JSON</span>
               <input type="file" accept="application/json" onChange={onUpload} className="hidden" />
             </label>
-            <button onClick={restoreDefaults} className="px-3 py-2 rounded-xl border bg-white shadow hover:opacity-90 text-sm">Restore defaults</button>
-            <button onClick={exportPlan} className="px-3 py-2 rounded-xl bg-slate-900 text-white text-sm shadow hover:opacity-90">Export Plan</button>
+            <button onClick={restoreDefaults} className="px-3 py-2 rounded-xl border bg-white shadow hover:opacity-90 text-sm">
+              Restore defaults
+            </button>
+            <button onClick={exportPlan} className="px-3 py-2 rounded-2xl bg-slate-900 text-white text-sm shadow hover:opacity-90">
+              Export Plan
+            </button>
           </div>
         </header>
 
@@ -454,15 +468,27 @@ function CourseMapperApp() {
             <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Program</label>
             <select value={program} onChange={(e) => setProgram(e.target.value)} className="w-full rounded-xl border px-3 py-2 bg-white">
               {Object.keys(requirementsMap).map((name) => (
-                <option key={name} value={name}>{name}</option>
+                <option key={name} value={name}>
+                  {name}
+                </option>
               ))}
             </select>
-            <p className="text-[12px] text-slate-500 mt-2">Built-ins: Water Science, Geoscience, Geophysics, Geology, Hydrogeology. Upload a .json to add more.</p>
+            <p className="text-[12px] text-slate-500 mt-2">
+              Built-ins: Water Science, Geoscience, Geophysics, Geology, Hydrogeology. Upload a .json to add more.
+            </p>
           </div>
 
           <div className="md:col-span-2 p-5 bg-white rounded-2xl shadow border border-gray-100">
-            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Completed Courses (comma-separated)</label>
-            <textarea value={rawCourses} onChange={(e) => setRawCourses(e.target.value)} rows={5} placeholder="e.g., CHEM 120, MATH 127, PHYS 111, CS 115, ..." className="w-full rounded-xl border px-3 py-2 bg-white" />
+            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+              Completed Courses (comma-separated)
+            </label>
+            <textarea
+              value={rawCourses}
+              onChange={(e) => setRawCourses(e.target.value)}
+              rows={5}
+              placeholder="e.g., CHEM 120, MATH 127, PHYS 111, CS 115, ..."
+              className="w-full rounded-xl border px-3 py-2 bg-white"
+            />
             <div className="mt-3">
               {courses.length ? (
                 <div className="flex flex-wrap">
@@ -478,15 +504,17 @@ function CourseMapperApp() {
         </section>
 
         {!reqData ? (
-          <div className="p-5 rounded-2xl border bg-white shadow text-slate-600">No requirement JSON found for <b>{program}</b>. Upload one above.</div>
+          <div className="p-5 rounded-2xl border bg-white shadow text-slate-600">
+            No requirement JSON found for <b>{program}</b>. Upload one above.
+          </div>
         ) : (
           <>
             <section className="grid lg:grid-cols-2 gap-6 mb-8">
-              <SectionCard title="Section 1A" completed={completed["1A"]} remaining={remaining["1A"]} />
-              <SectionCard title="Section 1B" completed={completed["1B"]} remaining={remaining["1B"]} />
-              <SectionCard title="Section 2A" completed={completed["2A"]} remaining={remaining["2A"]} />
-              <SectionCard title="Section 2B" completed={completed["2B"]} remaining={remaining["2B"]} />
-              <SectionCard title="Section 2C" completed={completed["2C"]} remaining={remaining["2C"]} />
+              <SectionCard title="Section 1A" sectionKey="1A" completed={completed["1A"]} remaining={remaining["1A"]} />
+              <SectionCard title="Section 1B" sectionKey="1B" completed={completed["1B"]} remaining={remaining["1B"]} />
+              <SectionCard title="Section 2A" sectionKey="2A" completed={completed["2A"]} remaining={remaining["2A"]} />
+              <SectionCard title="Section 2B" sectionKey="2B" completed={completed["2B"]} remaining={remaining["2B"]} />
+              <SectionCard title="Section 2C" sectionKey="2C" completed={completed["2C"]} remaining={remaining["2C"]} />
             </section>
 
             {program.toLowerCase() === "geoscience" && (
@@ -494,7 +522,9 @@ function CourseMapperApp() {
                 <h3 className="text-lg font-semibold mb-2">Detected PGO Stream(s)</h3>
                 {streams.length ? (
                   <div className="flex flex-wrap">
-                    {streams.map((s) => (<Chip key={s} text={s} />))}
+                    {streams.map((s) => (
+                      <Chip key={s} text={s} />
+                    ))}
                   </div>
                 ) : (
                   <div className="text-slate-500 text-sm">Could not determine stream. More relevant 2B/2C courses may be needed.</div>
@@ -524,20 +554,27 @@ function CourseMapperApp() {
                   ))}
                 </div>
               ) : (
-                <div className="text-slate-500 text-sm">No suggestions &mdash; all sections satisfied or missing requirement metadata.</div>
+                <div className="text-slate-500 text-sm">No suggestions — all sections satisfied or missing requirement metadata.</div>
               )}
             </section>
 
             <section className="mb-8 p-5 bg-white rounded-2xl shadow border border-gray-100">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">Self-tests</h3>
-                <button onClick={handleRunTests} className="px-3 py-1.5 rounded-lg border shadow-sm">Run Tests</button>
+                <button onClick={handleRunTests} className="px-3 py-1.5 rounded-lg border shadow-sm">
+                  Run Tests
+                </button>
               </div>
               {tests.length > 0 && (
                 <ul className="mt-3 space-y-2 text-sm">
                   {tests.map((t, i) => (
-                    <li key={i} className={`p-2 rounded border ${t.pass ? 'border-green-300 bg-green-50' : 'border-rose-300 bg-rose-50'}`}>
-                      <div className="font-medium">{t.name} {t.pass ? 'PASS' : 'FAIL'}</div>
+                    <li
+                      key={i}
+                      className={`p-2 rounded border ${t.pass ? "border-green-300 bg-green-50" : "border-rose-300 bg-rose-50"}`}
+                    >
+                      <div className="font-medium">
+                        {t.name} {t.pass ? "PASS" : "FAIL"}
+                      </div>
                       <pre className="whitespace-pre-wrap text-xs text-slate-600">{JSON.stringify(t.details, null, 2)}</pre>
                     </li>
                   ))}
@@ -556,5 +593,79 @@ function CourseMapperApp() {
 }
 
 // Mount app to #root
-const root = ReactDOM.createRoot(document.getElementById('root'));
+const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(React.createElement(CourseMapperApp));
+
+/* ---------- Suggestions builder (unchanged) ---------- */
+function computeSuggestions(remaining) {
+  const order = ["1A", "1B", "2A", "2B", "2C"];
+  const picks = [];
+  for (const sec of order) {
+    const rem = remaining?.[sec];
+    if (!rem) continue;
+    if (sec === "1B" && rem.remaining_by_category) {
+      const need = rem.needed_more_courses || 0;
+      const pool = Object.entries(rem.remaining_by_category).flatMap(([cat, list]) =>
+        list.map((c) => ({ section: sec, category: cat, course: c }))
+      );
+      picks.push({ section: sec, need, options: pool });
+    } else if (sec === "2B" && typeof rem === "object") {
+      for (const [group, data] of Object.entries(rem)) {
+        const need = data.needed_more_courses || 0;
+        const pool = Object.entries(data.remaining_subjects || {}).flatMap(([subj, list]) =>
+          list.map((c) => ({ section: sec, group, category: subj, course: c }))
+        );
+        picks.push({ section: `${sec} - ${group}`, need, options: pool });
+      }
+    } else if (typeof rem === "object") {
+      const pool = Object.entries(rem).flatMap(([cat, list]) =>
+        Array.isArray(list) ? list.map((c) => ({ section: sec, category: cat, course: c })) : []
+      );
+      if (pool.length) picks.push({ section: sec, need: pool.length, options: pool });
+    }
+  }
+  return picks;
+}
+
+/* ---------- Self-tests (unchanged) ---------- */
+function runSelfTests() {
+  const results = [];
+  {
+    const courses = ["CHEM 120"];
+    const { completed } = evaluateUserCourses(courses, WATER_SCIENCE);
+    const pass = !!(completed["1A"] && completed["1A"].Chemistry && completed["1A"].Chemistry.includes("CHEM 120"));
+    results.push({ name: "1A Chemistry match", pass, details: completed["1A"] });
+  }
+  {
+    const courses = ["CS 115", "CS 116", "MATH 106"];
+    const { remaining } = evaluateUserCourses(courses, WATER_SCIENCE);
+    const need = remaining?.["1B"]?.needed_more_courses;
+    const pass = need === 3;
+    results.push({ name: "1B min total", pass, details: { need } });
+  }
+  {
+    const courses = ["EARTH 221", "EARTH 331", "EARTH 342"];
+    const { completed, remaining } = evaluateUserCourses(courses, GEOSCIENCE);
+    const g1 = completed?.["2B"]?.["Group 1"];
+    const g2 = completed?.["2B"]?.["Group 2"];
+    const g3 = completed?.["2B"]?.["Group 3"];
+    const pass = !!(g1 && g1.length && g2 && g2.length && g3 && g3.length) && !remaining?.["2B"];
+    results.push({ name: "2B subgroup coverage", pass, details: completed["2B"] });
+  }
+  {
+    const courses = ["EARTH 231", "EARTH 223"];
+    const { completed } = evaluateUserCourses(courses, GEOSCIENCE);
+    const usedIn2A = !!completed?.["2A"]?.["Mineralogy and Petrology"];
+    const count2C = completed?.["2C"] ? Object.values(completed["2C"]).flat().length : 0;
+    const pass = usedIn2A && count2C === 1;
+    results.push({ name: "2C no double-counting", pass, details: { usedIn2A, count2C } });
+  }
+  {
+    const courses = ["EARTH 221", "EARTH 331", "EARTH 333"];
+    const { completed } = evaluateUserCourses(courses, GEOSCIENCE);
+    const streams = determineStream(completed);
+    const pass = streams.includes("Geology");
+    results.push({ name: "Stream detection: Geology", pass, details: { streams } });
+  }
+  return results;
+}
