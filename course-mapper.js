@@ -2,8 +2,6 @@
 /* No imports/exports; relies on React UMD globals loaded in index.html */
 const { useEffect, useMemo, useState } = React;
 
-import React, { useEffect, useMemo, useState } from "react";
-
 // === Utility helpers ========================================================
 const uc = (s) => s.trim().toUpperCase();
 const isMeta = (k) => k.startsWith("_");
