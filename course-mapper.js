@@ -4,8 +4,8 @@ const { useEffect, useMemo, useState } = React;
 // === Utilities ==============================================================
 const uc = (s) => s.trim().toUpperCase();
 const isMeta = (k) => k.startsWith("_");
-const norm = (s) => s.toLowerCase().replace(/\s+/g, " ").replace(/\s*[\/,]\s*/g, " / ").trim();
-const joinList = (arr) => (Array.isArray(arr) ? arr.join(", ") : String(arr || ""));
+const norm = (s) =>
+  s.toLowerCase().replace(/\s+/g, " ").replace(/\s*[\/,]\s*/g, " / ").trim();
 
 // Persist simple state in localStorage
 const useLocal = (key, initial) => {
@@ -13,15 +13,19 @@ const useLocal = (key, initial) => {
     try {
       const raw = localStorage.getItem(key);
       return raw ? JSON.parse(raw) : initial;
-    } catch { return initial; }
+    } catch {
+      return initial;
+    }
   });
   useEffect(() => {
-    try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+    try {
+      localStorage.setItem(key, JSON.stringify(val));
+    } catch {}
   }, [key, val]);
   return [val, setVal];
 };
 
-// === Built-in requirement presets (from your 5 JSONs) =======================
+// === Built-in requirement presets (your 5 JSONs) ============================
 const WATER_SCIENCE = {"1A":{"_requirement":{"type":"all-categories-required","description":"One course is required from each of the following subjects."},"Chemistry":["CHEM 120"],"Math":["MATH 127"],"Physics":["PHYS 111","PHYS 121"]},"1B":{"_requirement":{"type":"multi-category-limit","description":"Select at least 6 courses from the following 6 categories. No more than 2 courses per category.","min_total_courses":6,"max_per_category":2,"valid_categories":["Biology","Computer Programming","Chemistry","Mathematics","Physics","Statistics"]},"Biology":["BIOL 150","BIOL 165"],"Computer Programming":["CS 115","CS 116","CS 105","CS 106"],"Chemistry":["CHEM 123","CHEM 220","CHEM 264","CHEM 266"],"Mathematics":["MATH 106","MATH 114","MATH 128"],"Physics":["PHYS 112","PHYS 122"],"Statistics":["STAT 202"]},"2A":{"_requirement":{"type":"all-categories-required","description":"One course is required from each of the following 4 categories."},"Field Techniques":["EARTH 390"],"Mineralogy and Petrology":["EARTH 231"],"Sedimentation and Stratigraphy":["EARTH 235"],"Structural Geology":["EARTH 238"]},"2B":{"_requirement":{"type":"subgroup-selection","description":"Select at least 1 and at most 2 courses from each of the 3 subgroups. No more than one course per subject.","min_per_group":1,"max_per_group":2,"max_per_subject":1},"Group 1":{"Geochemistry":["EARTH 221"],"Geophysics":["EARTH 260"]},"Group 2":{"Hydrogeology / Hydrology":["EARTH 458","GEOG 407"],"Engineering Geology":[]},"Group 3":{"Geomorphology or Soil Science":["EARTH 342","GEOG 201"],"Glacial Geology":[],"Remote Sensing / GIS":[]}},"2C":{"_requirement":{"type":"elective-geoscience","description":"Select up to 9 courses relevant to geoscience (2nd year or higher, science credit, and not used to fulfill other categories).","min_total_courses":9,"notes":["Courses from 2A/2B may count here if not used in those requirements.","Advanced versions of 2A/2B topics may also apply.","One course cannot fulfill multiple requirements."]},"Field Techniques":["EARTH 223"],"Hydrology / Hydrogeology":["EARTH 355"],"Earth Systems":["EARTH 444"],"Geochemistry":["EARTH 421"],"Geomorphology / Surficial":["GEOG 453"],"Sedimentology":["EARTH 333"]}};
 
 const HYDROGEOLOGY = {"1A":{"_requirement":{"type":"all-categories-required","description":"One course is required from each of the following subjects."},"Chemistry":["CHEM 120"],"Math":["MATH 127"],"Physics":["PHYS 111","PHYS 121"]},"1B":{"_requirement":{"type":"multi-category-limit","description":"Select at least 6 courses from the following 6 categories. No more than 2 courses per category.","min_total_courses":6,"max_per_category":2,"valid_categories":["Biology","Computer Programming","Chemistry","Mathematics","Physics","Statistics"]},"Biology":["BIOL 120","BIOL 150","BIOL 165","BIOL 240"],"Computer Programming":["CS 115","CS 116","CS 105","CS 106"],"Chemistry":["CHEM 123","CHEM 264","CHEM 266"],"Mathematics":["MATH 106","MATH 114","MATH 128"],"Physics":["PHYS 112","PHYS 122"],"Statistics":["STAT 202"]},"2A":{"_requirement":{"type":"all-categories-required","description":"One course is required from each of the following 4 categories."},"Field Techniques":["EARTH 390"],"Mineralogy and Petrology":["EARTH 231"],"Sedimentation and Stratigraphy":["EARTH 235"],"Structural Geology":["EARTH 238"]},"2B":{"_requirement":{"type":"subgroup-selection","description":"Select at least 1 and at most 2 courses from each of the 3 subgroups. No more than one course per subject.","min_per_group":1,"max_per_group":2,"max_per_subject":1},"Group 1":{"Geochemistry":["EARTH 221"],"Geophysics":["EARTH 260"]},"Group 2":{"Hydrogeology / Hydrology":["EARTH 458"],"Sedimentary Petrology":["EARTH 232"]},"Group 3":{"Geomorphology":["EARTH 342"]}},"2C":{"_requirement":{"type":"elective-geoscience","description":"Select up to 9 courses relevant to geoscience (2nd year or higher, science credit, and not used to fulfill other categories).","min_total_courses":9,"notes":["Courses from 2A/2B may count here if not used in those requirements.","Advanced versions of 2A/2B topics may also apply.","One course cannot fulfill multiple requirements."]},"Field Techniques":["EARTH 223"],"Communication":["EARTH 436A","EARTH 436B"],"Sedimentology":["EARTH 333"],"Hydrology / Hydrogeology":["EARTH 456","EARTH 459"],"Geochemistry":["EARTH 421"],"Geomorphology / Surficial":["EARTH 440"],"Geotechnical":["CIVE 353"]}};
@@ -40,12 +44,12 @@ const DEFAULT_REQS = {
   "Hydrogeology": HYDROGEOLOGY,
 };
 
-// === Core evaluator =========================================================
+// === Core evaluator (consistent shapes for all sections) ====================
 function evaluateUserCourses(userCourses, requirementData) {
   const completed = {};
   const remaining = {};
 
-  // 1A
+  // 1A (all categories required)
   const req1a = requirementData?.["1A"] ?? {};
   const rule1a = req1a?._requirement ?? {};
   if (rule1a?.type === "all-categories-required") {
@@ -53,13 +57,14 @@ function evaluateUserCourses(userCourses, requirementData) {
     Object.entries(req1a).forEach(([cat, list]) => {
       if (isMeta(cat)) return;
       const matched = [...new Set(userCourses.filter((x) => list.includes(x)))];
-      if (matched.length) c[cat] = matched; else r[cat] = list;
+      if (matched.length) c[cat] = matched;
+      else r[cat] = list;
     });
     if (Object.keys(c).length) completed["1A"] = c;
     if (Object.keys(r).length) remaining["1A"] = r;
   }
 
-  // 1B
+  // 1B (multi-category with min total)
   const req1b = requirementData?.["1B"] ?? {};
   const rule1b = req1b?._requirement ?? {};
   if (rule1b?.type === "multi-category-limit") {
@@ -70,22 +75,17 @@ function evaluateUserCourses(userCourses, requirementData) {
       const matched = userCourses.filter((x) => list.includes(x));
       if (matched.length) {
         const limited = matched.slice(0, rule1b.max_per_category || matched.length);
-        c[cat] = limited; total += limited.length;
+        c[cat] = limited;
+        total += limited.length;
       } else {
-        r[cat] = list;
+        r[cat] = list;                 // show full catalog for categories not yet satisfied
       }
     }
-    if (total >= (rule1b.min_total_courses || 0)) {
-      completed["1B"] = c;
-    } else {
-      remaining["1B"] = {
-        needed_more_courses: (rule1b.min_total_courses || 0) - total,
-        remaining_by_category: r,
-      };
-    }
+    if (total >= (rule1b.min_total_courses || 0)) completed["1B"] = c;
+    else remaining["1B"] = { needed_more_courses: (rule1b.min_total_courses || 0) - total, remaining_by_category: r };
   }
 
-  // 2A
+  // 2A (all categories required)
   const req2a = requirementData?.["2A"] ?? {};
   const rule2a = req2a?._requirement ?? {};
   if (rule2a?.type === "all-categories-required") {
@@ -93,73 +93,76 @@ function evaluateUserCourses(userCourses, requirementData) {
     Object.entries(req2a).forEach(([cat, list]) => {
       if (isMeta(cat)) return;
       const matched = [...new Set(userCourses.filter((x) => list.includes(x)))];
-      if (matched.length) c[cat] = matched; else r[cat] = list;
+      if (matched.length) c[cat] = matched;
+      else r[cat] = list;
     });
     completed["2A"] = c;
     if (Object.keys(r).length) remaining["2A"] = r;
   }
 
-  // 2B
+  // 2B (subgroup-selection) — make shape consistent:
+  // Completed: flat keys "Group N — Subject": [matched]
+  // Remaining: flat keys "Group N — Subject": [FULL subject list], only for subjects not yet satisfied
   const req2b = requirementData?.["2B"] ?? {};
   const rule2b = req2b?._requirement ?? {};
   if (rule2b?.type === "subgroup-selection") {
-    const comp2b = {};
-    const rem2b = {};
+    const c = {};
+    const r = {};
     const groupNames = Object.keys(req2b).filter((g) => !isMeta(g));
 
     for (const groupName of groupNames) {
       const group = req2b[groupName] || {};
-      const groupCompleted = [];
-      const groupRemaining = {};
+      // count how many we credited in this group (respect max_per_subject & max_per_group)
       let count = 0;
+      const creditedSubjects = new Set();
 
+      // First pass: credit subjects if user has any of the courses (limit per group/subject)
       for (const [subject, list] of Object.entries(group)) {
         if (count >= (rule2b.max_per_group || Infinity)) break;
         const matched = userCourses.filter((x) => list.includes(x));
         if (matched.length) {
           const limited = matched.slice(0, rule2b.max_per_subject || matched.length);
-          for (const course of limited) {
-            if (count < (rule2b.max_per_group || Infinity)) {
-              groupCompleted.push({ [subject]: course });
-              count += 1;
-            }
+          if (limited.length && count < (rule2b.max_per_group || Infinity)) {
+            const key = `${groupName} — ${subject}`;
+            c[key] = limited;
+            creditedSubjects.add(subject);
+            count += limited.length; // (in your data this is effectively +1)
           }
-        } else {
-          groupRemaining[subject] = list;
         }
       }
 
-      if (count >= (rule2b.min_per_group || 0)) comp2b[groupName] = groupCompleted;
+      // If group not yet at minimum, expose the remaining subjects with their FULL catalogs
       if (count < (rule2b.min_per_group || 0)) {
-        rem2b[groupName] = {
-          needed_more_courses: (rule2b.min_per_group || 0) - count,
-          remaining_subjects: groupRemaining,
-        };
+        for (const [subject, list] of Object.entries(group)) {
+          if (creditedSubjects.has(subject)) continue; // already satisfied this subject
+          const key = `${groupName} — ${subject}`;
+          r[key] = list; // show all possible courses; do NOT hide taken ones
+        }
       }
     }
-    completed["2B"] = comp2b;
-    if (Object.keys(rem2b).length) remaining["2B"] = rem2b;
+
+    if (Object.keys(c).length) completed["2B"] = c;
+    if (Object.keys(r).length) remaining["2B"] = r;
   }
 
-  // 2C — electives (avoid double-counting)
+  // 2C (electives) — consistent shape:
+  // Completed: { Category: [user courses that count, excluding double-counted] }
+  // Remaining: { Category: [FULL elective list from JSON], shown regardless of what was taken elsewhere }
   const req2c = requirementData?.["2C"] ?? {};
   const rule2c = req2c?._requirement ?? {};
   if (rule2c?.type === "elective-geoscience") {
-    // gather all courses already credited in other sections
+    // collect all courses already used by 1A/1B/2A/2B so we don't double-count in COMPLETED
     const used = new Set();
     for (const sec of Object.values(completed)) {
       if (!sec || typeof sec !== "object") continue;
-      for (const catVal of Object.values(sec)) {
-        if (typeof catVal === "string") used.add(catVal);
-        else if (Array.isArray(catVal)) {
-          for (const item of catVal) {
+      for (const val of Object.values(sec)) {
+        if (typeof val === "string") used.add(val);
+        else if (Array.isArray(val)) {
+          for (const item of val) {
             if (typeof item === "string") used.add(item);
-            else if (item && typeof item === "object") {
-              for (const v of Object.values(item)) if (typeof v === "string") used.add(v);
-            }
           }
-        } else if (catVal && typeof catVal === "object") {
-          for (const v of Object.values(catVal)) {
+        } else if (val && typeof val === "object") {
+          for (const v of Object.values(val)) {
             if (typeof v === "string") used.add(v);
             else if (Array.isArray(v)) v.forEach((x) => typeof x === "string" && used.add(x));
           }
@@ -167,74 +170,58 @@ function evaluateUserCourses(userCourses, requirementData) {
       }
     }
 
-    const categoriesMatched = {};
-    const allValid = [];
-    const available = {}; // show ALL options from JSON (minus any already used elsewhere)
-    for (const [subject, list] of Object.entries(req2c)) {
-      if (isMeta(subject)) continue;
-      const avail = [...new Set(list.filter((x) => !used.has(x)))];
-      if (avail.length) available[subject] = avail;
+    const c = {};
+    const r = {};
+    let creditedCount = 0;
 
-      const valid = [...new Set(list.filter((x) => userCourses.includes(x) && !used.has(x)))];
-      if (valid.length) { categoriesMatched[subject] = valid; allValid.push(...valid); }
+    for (const [cat, list] of Object.entries(req2c)) {
+      if (isMeta(cat)) continue;
+
+      // Completed: only user courses that are NOT already used elsewhere
+      const creditable = list.filter((x) => userCourses.includes(x) && !used.has(x));
+      if (creditable.length) {
+        c[cat] = [...new Set(creditable)];
+        creditedCount += c[cat].length;
+      }
+
+      // Remaining: FULL catalog from the JSON (do NOT remove taken ones)
+      r[cat] = list.slice();
     }
 
-    if (allValid.length >= (rule2c.min_total_courses || 0)) {
-      completed["2C"] = categoriesMatched;
+    if (creditedCount >= (rule2c.min_total_courses || 0) && creditedCount > 0) {
+      completed["2C"] = c;
     } else {
-      remaining["2C"] = {
-        completed_so_far: allValid.length,
-        needed: (rule2c.min_total_courses || 0) - allValid.length,
-        categories_matched: categoriesMatched,
-        available_courses: available,   // <— NEW: show all electives from the JSONs
-      };
+      remaining["2C"] = r;
+      if (creditedCount > 0) completed["2C"] = c; // show any that counted so far
     }
   }
 
   return { completed, remaining };
 }
 
-// Stream detection (Geoscience only)
-function determineStream(completed) {
-  const geology2b = new Set(["Igneous Petrology", "Metamorphic Petrology", "Sedimentary Petrology", "Sedimentology"].map(norm));
-  const envgeo2b = new Set(["Hydrogeology / Hydrology", "Engineering Geology", "Soil Science"].map(norm));
-  const envgeo2c = new Set(["Environmental Assessment"].map(norm));
-
-  const geology = new Set();
-  const env = new Set();
-
-  const sec2b = completed?.["2B"] || {};
-  for (const group of Object.values(sec2b)) {
-    if (Array.isArray(group)) {
-      for (const item of group) {
-        if (!item || typeof item !== "object") continue;
-        for (const cat of Object.keys(item)) {
-          const n = norm(cat);
-          if (geology2b.has(n)) geology.add(cat);
-          if (envgeo2b.has(n)) env.add(cat);
-        }
-      }
-    } else if (group && typeof group === "object") {
-      for (const cat of Object.keys(group)) {
-        const n = norm(cat);
-        if (geology2b.has(n)) geology.add(cat);
-        if (envgeo2b.has(n)) env.add(cat);
-      }
+// Suggestions — works with the unified "Remaining" shapes
+function computeSuggestions(remaining) {
+  const picks = [];
+  for (const [sec, rem] of Object.entries(remaining || {})) {
+    if (!rem || typeof rem !== "object") continue;
+    if (sec === "1B" && rem.remaining_by_category) {
+      const need = rem.needed_more_courses || 0;
+      const pool = Object.entries(rem.remaining_by_category).flatMap(([cat, list]) =>
+        (list || []).map((c) => ({ section: sec, category: cat, course: c })),
+      );
+      if (pool.length) picks.push({ section: sec, need, options: pool });
+      continue;
     }
+    // Generic (1A, 2A, 2B, 2C now all map label -> [courses])
+    const pool = Object.entries(rem).flatMap(([label, list]) =>
+      Array.isArray(list) ? list.map((c) => ({ section: sec, category: label, course: c })) : [],
+    );
+    if (pool.length) picks.push({ section: sec, options: pool });
   }
-
-  const sec2c = completed?.["2C"] || {};
-  for (const [cat, list] of Object.entries(sec2c)) {
-    if (envgeo2c.has(norm(cat)) && list && list.length) env.add(cat);
-  }
-
-  const streams = [];
-  if (geology.size) streams.push("Geology");
-  if (env.size) streams.push("Environmental Geoscience");
-  return streams;
+  return picks;
 }
 
-// === UI components ==========================================================
+// === UI =====================================================================
 const Chip = ({ text, onRemove }) => (
   <span className="inline-flex items-center gap-2 bg-gray-100 rounded-full px-3 py-1 text-sm shadow-sm mr-2 mb-2">
     <span className="font-medium tracking-wide">{text}</span>
@@ -243,10 +230,6 @@ const Chip = ({ text, onRemove }) => (
     )}
   </span>
 );
-
-function Badge({ children }) {
-  return <span className="inline-flex items-center justify-center rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold">{children}</span>;
-}
 
 function GenericList({ data }) {
   const has = data && Object.keys(data).length > 0;
@@ -257,15 +240,17 @@ function GenericList({ data }) {
         <div key={cat}>
           <div className="text-sm font-semibold">{cat}</div>
           <div className="mt-1">
-            {Array.isArray(val) ? (
-              val.map((v, i) => <Chip key={cat + i} text={String(v)} />)
-            ) : typeof val === "object" ? (
-              Object.entries(val).map(([k, v]) =>
-                Array.isArray(v) ? <Chip key={cat + k} text={`${k}: ${joinList(v)}`} /> : <Chip key={cat + k} text={`${k}: ${String(v)}`} />
-              )
-            ) : (
-              <Chip text={String(val)} />
-            )}
+            {Array.isArray(val)
+              ? val.map((v, i) => <Chip key={cat + i} text={String(v)} />)
+              : typeof val === "object"
+              ? Object.entries(val).map(([k, v]) =>
+                  Array.isArray(v) ? (
+                    <Chip key={cat + k} text={`${k}: ${v.join(", ")}`} />
+                  ) : (
+                    <Chip key={cat + k} text={`${k}: ${String(v)}`} />
+                  ),
+                )
+              : <Chip text={String(val)} />}
           </div>
         </div>
       ))}
@@ -273,171 +258,22 @@ function GenericList({ data }) {
   );
 }
 
-// 2B renderers
-function Completed2B({ completed }) {
-  const hasCompleted = completed && Object.keys(completed).length > 0;
-  if (!hasCompleted) return <div className="text-gray-400 text-sm">None</div>;
-  return (
-    <div className="space-y-2">
-      {Object.entries(completed).map(([groupName, arr]) => (
-        <div key={groupName}>
-          <div className="text-sm font-semibold mb-1">{groupName}</div>
-          <div className="mt-1">
-            {(Array.isArray(arr) ? arr : []).map((obj, i) => {
-              const [[subject, course]] = Object.entries(obj);
-              return <Chip key={groupName + i} text={`${subject}: ${course}`} />;
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-function Remaining2B({ remaining }) {
-  if (!remaining || !Object.keys(remaining).length) return <div className="text-gray-400 text-sm">None</div>;
-  return (
-    <div className="space-y-4">
-      {Object.entries(remaining).map(([groupName, data]) => (
-        <div key={groupName} className="rounded-xl border p-3">
-          <div className="flex items-center justify-between mb-1">
-            <div className="text-sm font-semibold">{groupName}</div>
-            {"needed_more_courses" in data && <Badge>Need ~ {data.needed_more_courses}</Badge>}
-          </div>
-          <div className="mt-1">
-            {Object.entries(data.remaining_subjects || {}).map(([subject, list]) => (
-              <div key={subject} className="mb-1">
-                <span className="inline-flex items-center bg-gray-100 rounded-full px-3 py-1 text-sm shadow-sm mr-2 mb-2">
-                  <span className="font-medium">{subject}:</span>
-                  <span className="ml-2">{joinList(list)}</span>
-                </span>
-              </div>
-            ))}
-            {!Object.keys(data.remaining_subjects || {}).length && (
-              <div className="text-gray-400 text-xs">No remaining subjects.</div>
-            )}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// 2C renderer — shows electives from JSON
-function Remaining2C({ remaining }) {
-  if (!remaining) return <div className="text-gray-400 text-sm">None</div>;
-  const { completed_so_far = 0, needed = 0, available_courses = {}, categories_matched = {} } = remaining;
-  return (
-    <div>
-      <div className="flex items-center gap-4 mb-3">
-        <div className="text-sm text-slate-500">COMPLETED SO FAR</div>
-        <Badge>{completed_so_far}</Badge>
-        <div className="ml-6 text-sm text-slate-500">NEEDED</div>
-        <Badge>{needed}</Badge>
-      </div>
-
-      <div className="text-lg font-semibold mb-2">Available electives</div>
-      {Object.keys(available_courses).length ? (
-        <GenericList data={available_courses} />
-      ) : (
-        <div className="text-gray-400 text-sm">None</div>
-      )}
-
-      <div className="text-lg font-semibold mt-4 mb-2">Categories matched</div>
-      {Object.keys(categories_matched).length ? (
-        <GenericList data={categories_matched} />
-      ) : (
-        <div className="text-gray-400 text-sm">None</div>
-      )}
-    </div>
-  );
-}
-
-function SectionCard({ title, sectionKey, completed = {}, remaining = {} }) {
-  const is2B = sectionKey === "2B";
-  const is2C = sectionKey === "2C";
+function SectionCard({ title, completed = {}, remaining = {} }) {
   return (
     <div className="rounded-2xl shadow p-5 bg-white border border-gray-100">
       <h3 className="text-lg font-semibold mb-3">{title}</h3>
       <div className="grid md:grid-cols-2 gap-4">
         <div>
           <h4 className="font-medium text-green-600 mb-2">Completed</h4>
-          {is2B ? <Completed2B completed={completed} /> : <GenericList data={completed} />}
+          <GenericList data={completed} />
         </div>
         <div>
           <h4 className="font-medium text-rose-600 mb-2">Remaining</h4>
-          {is2B ? <Remaining2B remaining={remaining} /> : is2C ? <Remaining2C remaining={remaining} /> : <GenericList data={remaining} />}
+          <GenericList data={remaining} />
         </div>
       </div>
     </div>
   );
-}
-
-// Suggestions (now includes 2C electives from JSON)
-function computeSuggestions(remaining) {
-  const order = ["1A", "1B", "2A", "2B", "2C"];
-  const picks = [];
-  for (const sec of order) {
-    const rem = remaining?.[sec];
-    if (!rem) continue;
-    if (sec === "1B" && rem.remaining_by_category) {
-      const need = rem.needed_more_courses || 0;
-      const pool = Object.entries(rem.remaining_by_category).flatMap(([cat, list]) =>
-        list.map((c) => ({ section: sec, category: cat, course: c }))
-      );
-      picks.push({ section: sec, need, options: pool });
-    } else if (sec === "2B" && typeof rem === "object") {
-      for (const [group, data] of Object.entries(rem)) {
-        const need = data.needed_more_courses || 0;
-        const pool = Object.entries(data.remaining_subjects || {}).flatMap(([subj, list]) =>
-          list.map((c) => ({ section: sec, group, category: subj, course: c }))
-        );
-        picks.push({ section: `${sec} - ${group}`, need, options: pool });
-      }
-    } else if (sec === "2C" && rem.available_courses) {
-      const need = rem.needed || 0;
-      const pool = Object.entries(rem.available_courses).flatMap(([cat, list]) =>
-        list.map((c) => ({ section: "2C", category: cat, course: c }))
-      );
-      if (pool.length) picks.push({ section: "2C electives", need, options: pool });
-    } else if (typeof rem === "object") {
-      const pool = Object.entries(rem).flatMap(([cat, list]) =>
-        Array.isArray(list) ? list.map((c) => ({ section: sec, category: cat, course: c })) : []
-      );
-      if (pool.length) picks.push({ section: sec, need: pool.length, options: pool });
-    }
-  }
-  return picks;
-}
-
-// Simple tests
-function runSelfTests() {
-  const results = [];
-  {
-    const courses = ["CHEM 120"];
-    const { completed } = evaluateUserCourses(courses, WATER_SCIENCE);
-    results.push({ name: "1A Chemistry match", pass: !!completed["1A"]?.Chemistry?.includes("CHEM 120"), details: completed["1A"] });
-  }
-  {
-    const courses = ["CS 115", "CS 116", "MATH 106"];
-    const { remaining } = evaluateUserCourses(courses, WATER_SCIENCE);
-    results.push({ name: "1B min total", pass: remaining?.["1B"]?.needed_more_courses === 3, details: { need: remaining?.["1B"]?.needed_more_courses } });
-  }
-  {
-    const courses = ["EARTH 221", "EARTH 331", "EARTH 342"];
-    const { completed, remaining } = evaluateUserCourses(courses, GEOSCIENCE);
-    const g1 = completed?.["2B"]?.["Group 1"];
-    const g2 = completed?.["2B"]?.["Group 2"];
-    const g3 = completed?.["2B"]?.["Group 3"];
-    results.push({ name: "2B subgroup coverage", pass: !!(g1 && g1.length && g2 && g2.length && g3 && g3.length) && !remaining?.["2B"], details: completed["2B"] });
-  }
-  {
-    const courses = ["EARTH 231", "EARTH 223"];
-    const { completed, remaining } = evaluateUserCourses(courses, GEOSCIENCE);
-    const usedIn2A = !!completed?.["2A"]?.["Mineralogy and Petrology"];
-    const done = remaining?.["2C"] ? remaining["2C"].completed_so_far : Object.values(completed?.["2C"] || {}).flat().length;
-    results.push({ name: "2C no double-counting", pass: usedIn2A && done === 1, details: { usedIn2A, done } });
-  }
-  return results;
 }
 
 // === App ====================================================================
@@ -480,36 +316,38 @@ function CourseMapperApp() {
     return evaluateUserCourses(courses, reqData);
   }, [courses, reqData]);
 
-  const streams = useMemo(
-    () => (program.toLowerCase() === "geoscience" ? determineStream(completed) : []),
-    [completed, program]
-  );
   const suggestions = useMemo(() => computeSuggestions(remaining), [remaining]);
 
   const onUpload = async (e) => {
-    const file = e.target.files?.[0]; if (!file) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
     const text = await file.text();
     try {
       const json = JSON.parse(text);
       const guessed = file.name.replace(/\.[^.]+$/, "");
       setRequirementsMap({ ...requirementsMap, [guessed]: json });
       setProgram(guessed);
-    } catch { alert("Invalid JSON file."); }
-    finally { e.target.value = ""; }
+    } catch {
+      alert("Invalid JSON file.");
+    } finally {
+      e.target.value = "";
+    }
   };
 
   const restoreDefaults = () => setRequirementsMap({ ...DEFAULT_REQS });
 
   const exportPlan = () => {
-    const payload = { program, courses, completed, remaining, streams, generatedAt: new Date().toISOString() };
+    const payload = { program, courses, completed, remaining, generatedAt: new Date().toISOString() };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `course-plan-${program.replace(/\s+/g, "_").toLowerCase()}.json`;
-    document.body.appendChild(a); a.click(); URL.revokeObjectURL(url); a.remove();
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `course-plan-${program.replace(/\s+/g, "_").toLowerCase()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(url);
+    a.remove();
   };
-
-  const [tests, setTests] = useState([]);
-  const handleRunTests = () => setTests(runSelfTests());
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white text-slate-900">
@@ -517,15 +355,21 @@ function CourseMapperApp() {
         <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">Course Mapping Planner</h1>
-            <p className="text-sm text-slate-600 mt-1">Paste your completed courses, pick a program, and get a clear checklist plus next-course suggestions.</p>
+            <p className="text-sm text-slate-600 mt-1">
+              Paste your completed courses, pick a program, and get a clear checklist plus next-course suggestions.
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border bg-white shadow-sm cursor-pointer">
               <span className="text-sm font-medium">Upload requirements JSON</span>
               <input type="file" accept="application/json" onChange={onUpload} className="hidden" />
             </label>
-            <button onClick={restoreDefaults} className="px-3 py-2 rounded-xl border bg-white shadow hover:opacity-90 text-sm">Restore defaults</button>
-            <button onClick={exportPlan} className="px-3 py-2 rounded-2xl bg-slate-900 text-white text-sm shadow hover:opacity-90">Export Plan</button>
+            <button onClick={restoreDefaults} className="px-3 py-2 rounded-xl border bg-white shadow hover:opacity-90 text-sm">
+              Restore defaults
+            </button>
+            <button onClick={exportPlan} className="px-3 py-2 rounded-2xl bg-slate-900 text-white text-sm shadow hover:opacity-90">
+              Export Plan
+            </button>
           </div>
         </header>
 
@@ -537,17 +381,31 @@ function CourseMapperApp() {
                 <option key={name} value={name}>{name}</option>
               ))}
             </select>
-            <p className="text-[12px] text-slate-500 mt-2">Built-ins: Water Science, Geoscience, Geophysics, Geology, Hydrogeology. Upload a .json to add more.</p>
+            <p className="text-[12px] text-slate-500 mt-2">
+              Built-ins: Water Science, Geoscience, Geophysics, Geology, Hydrogeology. Upload a .json to add more.
+            </p>
           </div>
 
           <div className="md:col-span-2 p-5 bg-white rounded-2xl shadow border border-gray-100">
-            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Completed Courses (comma-separated)</label>
-            <textarea value={rawCourses} onChange={(e) => setRawCourses(e.target.value)} rows={5} placeholder="e.g., CHEM 120, MATH 127, PHYS 111, CS 115, ..." className="w-full rounded-xl border px-3 py-2 bg-white" />
+            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+              Completed Courses (comma-separated)
+            </label>
+            <textarea
+              value={rawCourses}
+              onChange={(e) => setRawCourses(e.target.value)}
+              rows={5}
+              placeholder="e.g., CHEM 120, MATH 127, PHYS 111, CS 115, ..."
+              className="w-full rounded-xl border px-3 py-2 bg-white"
+            />
             <div className="mt-3">
               {courses.length ? (
                 <div className="flex flex-wrap">
                   {courses.map((c) => (
-                    <Chip key={c} text={c} onRemove={() => setRawCourses(courses.filter((x) => x !== c).join(", "))} />
+                    <Chip
+                      key={c}
+                      text={c}
+                      onRemove={() => setRawCourses(courses.filter((x) => x !== c).join(", "))}
+                    />
                   ))}
                 </div>
               ) : (
@@ -558,27 +416,18 @@ function CourseMapperApp() {
         </section>
 
         {!reqData ? (
-          <div className="p-5 rounded-2xl border bg-white shadow text-slate-600">No requirement JSON found for <b>{program}</b>. Upload one above.</div>
+          <div className="p-5 rounded-2xl border bg-white shadow text-slate-600">
+            No requirement JSON found for <b>{program}</b>. Upload one above.
+          </div>
         ) : (
           <>
             <section className="grid lg:grid-cols-2 gap-6 mb-8">
-              <SectionCard title="Section 1A" sectionKey="1A" completed={completed["1A"]} remaining={remaining["1A"]} />
-              <SectionCard title="Section 1B" sectionKey="1B" completed={completed["1B"]} remaining={remaining["1B"]} />
-              <SectionCard title="Section 2A" sectionKey="2A" completed={completed["2A"]} remaining={remaining["2A"]} />
-              <SectionCard title="Section 2B" sectionKey="2B" completed={completed["2B"]} remaining={remaining["2B"]} />
-              <SectionCard title="Section 2C" sectionKey="2C" completed={completed["2C"]} remaining={remaining["2C"]} />
+              <SectionCard title="Section 1A" completed={completed["1A"]} remaining={remaining["1A"]} />
+              <SectionCard title="Section 1B" completed={completed["1B"]} remaining={remaining["1B"]?.remaining_by_category || {}} />
+              <SectionCard title="Section 2A" completed={completed["2A"]} remaining={remaining["2A"]} />
+              <SectionCard title="Section 2B" completed={completed["2B"]} remaining={remaining["2B"]} />
+              <SectionCard title="Section 2C" completed={completed["2C"]} remaining={remaining["2C"]} />
             </section>
-
-            {program.toLowerCase() === "geoscience" && (
-              <section className="mb-8 p-5 bg-white rounded-2xl shadow border border-gray-100">
-                <h3 className="text-lg font-semibold mb-2">Detected PGO Stream(s)</h3>
-                {streams.length ? (
-                  <div className="flex flex-wrap">{streams.map((s) => (<Chip key={s} text={s} />))}</div>
-                ) : (
-                  <div className="text-slate-500 text-sm">Could not determine stream. More relevant 2B/2C courses may be needed.</div>
-                )}
-              </section>
-            )}
 
             <section className="mb-8 p-5 bg-white rounded-2xl shadow border border-gray-100">
               <h3 className="text-lg font-semibold mb-2">Suggested Next Picks</h3>
@@ -588,13 +437,14 @@ function CourseMapperApp() {
                   <div className="space-y-4">
                     {items.map((s, i) => (
                       <div key={i} className="rounded-xl border p-3">
-                        <div className="text-sm font-semibold mb-1 flex items-center justify-between">
-                          <span>{s.section}</span>
-                          {typeof s.need === "number" && <span className="text-xs text-slate-500">Need ~ {s.need}</span>}
-                        </div>
+                        <div className="text-sm font-semibold mb-1">{s.section}</div>
                         <div className="flex flex-wrap">
-                          {s.options.slice(0, 24).map((o, j) => <Chip key={j} text={o.course + (o.category ? ` (${o.category})` : "")} />)}
-                          {s.options.length > 24 && <span className="text-xs text-slate-500 ml-1">+{s.options.length - 24} more…</span>}
+                          {s.options.slice(0, 24).map((o, j) => (
+                            <Chip key={j} text={o.course + (o.category ? ` (${o.category})` : "")} />
+                          ))}
+                          {s.options.length > 24 && (
+                            <span className="text-xs text-slate-500 ml-1">+{s.options.length - 24} more…</span>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -604,28 +454,11 @@ function CourseMapperApp() {
                 );
               })()}
             </section>
-
-            <section className="mb-8 p-5 bg-white rounded-2xl shadow border border-gray-100">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Self-tests</h3>
-                <button onClick={handleRunTests} className="px-3 py-1.5 rounded-lg border shadow-sm">Run Tests</button>
-              </div>
-              {tests.length > 0 && (
-                <ul className="mt-3 space-y-2 text-sm">
-                  {tests.map((t, i) => (
-                    <li key={i} className={`p-2 rounded border ${t.pass ? "border-green-300 bg-green-50" : "border-rose-300 bg-rose-50"}`}>
-                      <div className="font-medium">{t.name} {t.pass ? "PASS" : "FAIL"}</div>
-                      <pre className="whitespace-pre-wrap text-xs text-slate-600">{JSON.stringify(t.details, null, 2)}</pre>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
           </>
         )}
 
         <footer className="text-center text-xs text-slate-500 mt-12">
-          Frontend mirrors your Python rules, avoids double-counting, and lists full 2C elective options from your JSONs.
+          All sections use the same layout; 2B &amp; 2C show the full catalogs even if you’ve taken a course.
         </footer>
       </div>
     </div>
