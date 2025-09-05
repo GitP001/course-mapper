@@ -21,7 +21,7 @@ const useLocal = (key, initial) => {
   return [val, setVal];
 };
 
-// === Built-in requirement presets ===========================================
+// === Built-in requirement presets (from your 5 JSONs) =======================
 const WATER_SCIENCE = {"1A":{"_requirement":{"type":"all-categories-required","description":"One course is required from each of the following subjects."},"Chemistry":["CHEM 120"],"Math":["MATH 127"],"Physics":["PHYS 111","PHYS 121"]},"1B":{"_requirement":{"type":"multi-category-limit","description":"Select at least 6 courses from the following 6 categories. No more than 2 courses per category.","min_total_courses":6,"max_per_category":2,"valid_categories":["Biology","Computer Programming","Chemistry","Mathematics","Physics","Statistics"]},"Biology":["BIOL 150","BIOL 165"],"Computer Programming":["CS 115","CS 116","CS 105","CS 106"],"Chemistry":["CHEM 123","CHEM 220","CHEM 264","CHEM 266"],"Mathematics":["MATH 106","MATH 114","MATH 128"],"Physics":["PHYS 112","PHYS 122"],"Statistics":["STAT 202"]},"2A":{"_requirement":{"type":"all-categories-required","description":"One course is required from each of the following 4 categories."},"Field Techniques":["EARTH 390"],"Mineralogy and Petrology":["EARTH 231"],"Sedimentation and Stratigraphy":["EARTH 235"],"Structural Geology":["EARTH 238"]},"2B":{"_requirement":{"type":"subgroup-selection","description":"Select at least 1 and at most 2 courses from each of the 3 subgroups. No more than one course per subject.","min_per_group":1,"max_per_group":2,"max_per_subject":1},"Group 1":{"Geochemistry":["EARTH 221"],"Geophysics":["EARTH 260"]},"Group 2":{"Hydrogeology / Hydrology":["EARTH 458","GEOG 407"],"Engineering Geology":[]},"Group 3":{"Geomorphology or Soil Science":["EARTH 342","GEOG 201"],"Glacial Geology":[],"Remote Sensing / GIS":[]}},"2C":{"_requirement":{"type":"elective-geoscience","description":"Select up to 9 courses relevant to geoscience (2nd year or higher, science credit, and not used to fulfill other categories).","min_total_courses":9,"notes":["Courses from 2A/2B may count here if not used in those requirements.","Advanced versions of 2A/2B topics may also apply.","One course cannot fulfill multiple requirements."]},"Field Techniques":["EARTH 223"],"Hydrology / Hydrogeology":["EARTH 355"],"Earth Systems":["EARTH 444"],"Geochemistry":["EARTH 421"],"Geomorphology / Surficial":["GEOG 453"],"Sedimentology":["EARTH 333"]}};
 
 const HYDROGEOLOGY = {"1A":{"_requirement":{"type":"all-categories-required","description":"One course is required from each of the following subjects."},"Chemistry":["CHEM 120"],"Math":["MATH 127"],"Physics":["PHYS 111","PHYS 121"]},"1B":{"_requirement":{"type":"multi-category-limit","description":"Select at least 6 courses from the following 6 categories. No more than 2 courses per category.","min_total_courses":6,"max_per_category":2,"valid_categories":["Biology","Computer Programming","Chemistry","Mathematics","Physics","Statistics"]},"Biology":["BIOL 120","BIOL 150","BIOL 165","BIOL 240"],"Computer Programming":["CS 115","CS 116","CS 105","CS 106"],"Chemistry":["CHEM 123","CHEM 264","CHEM 266"],"Mathematics":["MATH 106","MATH 114","MATH 128"],"Physics":["PHYS 112","PHYS 122"],"Statistics":["STAT 202"]},"2A":{"_requirement":{"type":"all-categories-required","description":"One course is required from each of the following 4 categories."},"Field Techniques":["EARTH 390"],"Mineralogy and Petrology":["EARTH 231"],"Sedimentation and Stratigraphy":["EARTH 235"],"Structural Geology":["EARTH 238"]},"2B":{"_requirement":{"type":"subgroup-selection","description":"Select at least 1 and at most 2 courses from each of the 3 subgroups. No more than one course per subject.","min_per_group":1,"max_per_group":2,"max_per_subject":1},"Group 1":{"Geochemistry":["EARTH 221"],"Geophysics":["EARTH 260"]},"Group 2":{"Hydrogeology / Hydrology":["EARTH 458"],"Sedimentary Petrology":["EARTH 232"]},"Group 3":{"Geomorphology":["EARTH 342"]}},"2C":{"_requirement":{"type":"elective-geoscience","description":"Select up to 9 courses relevant to geoscience (2nd year or higher, science credit, and not used to fulfill other categories).","min_total_courses":9,"notes":["Courses from 2A/2B may count here if not used in those requirements.","Advanced versions of 2A/2B topics may also apply.","One course cannot fulfill multiple requirements."]},"Field Techniques":["EARTH 223"],"Communication":["EARTH 436A","EARTH 436B"],"Sedimentology":["EARTH 333"],"Hydrology / Hydrogeology":["EARTH 456","EARTH 459"],"Geochemistry":["EARTH 421"],"Geomorphology / Surficial":["EARTH 440"],"Geotechnical":["CIVE 353"]}};
@@ -32,7 +32,13 @@ const GEOPHYSICS = {"1A":{"_requirement":{"type":"all-categories-required","desc
 
 const GEOLOGY = {"1A":{"_requirement":{"type":"all-categories-required","description":"One course is required from each of the following subjects."},"Chemistry":["CHEM 120"],"Math":["MATH 127"],"Physics":["PHYS 111","PHYS 121"]},"1B":{"_requirement":{"type":"multi-category-limit","description":"Select at least 6 courses from the following 6 categories. No more than 2 courses per category.","min_total_courses":6,"max_per_category":2,"valid_categories":["Biology","Computer Programming","Chemistry","Mathematics","Physics","Statistics"]},"Biology":["BIOL 120","BIOL 150","BIOL 165","BIOL 240"],"Computer Programming":["CS 115","CS 116","CS 105","CS 106"],"Chemistry":["CHEM 123","CHEM 264","CHEM 266"],"Mathematics":["MATH 106","MATH 114","MATH 128"],"Physics":["PHYS 112","PHYS 122"],"Statistics":["STAT 202"]},"2A":{"_requirement":{"type":"all-categories-required","description":"One course is required from each of the following 4 categories."},"Field Techniques":["EARTH 390"],"Mineralogy and Petrology":["EARTH 231"],"Sedimentation and Stratigraphy":["EARTH 235"],"Structural Geology":["EARTH 238"]},"2B":{"_requirement":{"type":"subgroup-selection","description":"Select at least 1 and at most 2 courses from each of the 3 subgroups. No more than one course per subject.","min_per_group":1,"max_per_group":2,"max_per_subject":1},"Group 1":{"Geochemistry":["EARTH 221"],"Geophysics":["EARTH 260"]},"Group 2":{"Igneous Petrology":["EARTH 331"],"Sedimentary Petrology":["EARTH 232"]},"Group 3":{"Geomorphology":["EARTH 342"]}},"2C":{"_requirement":{"type":"elective-geoscience","description":"Select up to 9 courses relevant to geoscience (2nd year or higher, science credit, and not used to fulfill other categories).","min_total_courses":9,"notes":["Courses from 2A/2B may count here if not used in those requirements.","Advanced versions of 2A/2B topics may also apply.","One course cannot fulfill multiple requirements."]},"Field Techniques":["EARTH 223"],"Communication":["EARTH 436A","EARTH 436B"],"Sedimentology":["EARTH 333"],"Earth Systems":["EARTH 358"],"Resource Geology":["EARTH 471"],"Petrology":["EARTH 332"]}};
 
-const DEFAULT_REQS = { "Water Science": WATER_SCIENCE, "Geoscience": GEOSCIENCE, "Geophysics": GEOPHYSICS, "Geology": GEOLOGY, "Hydrogeology": HYDROGEOLOGY };
+const DEFAULT_REQS = {
+  "Water Science": WATER_SCIENCE,
+  "Geoscience": GEOSCIENCE,
+  "Geophysics": GEOPHYSICS,
+  "Geology": GEOLOGY,
+  "Hydrogeology": HYDROGEOLOGY,
+};
 
 // === Core evaluator =========================================================
 function evaluateUserCourses(userCourses, requirementData) {
@@ -64,8 +70,7 @@ function evaluateUserCourses(userCourses, requirementData) {
       const matched = userCourses.filter((x) => list.includes(x));
       if (matched.length) {
         const limited = matched.slice(0, rule1b.max_per_category || matched.length);
-        c[cat] = limited;
-        total += limited.length;
+        c[cat] = limited; total += limited.length;
       } else {
         r[cat] = list;
       }
@@ -140,7 +145,7 @@ function evaluateUserCourses(userCourses, requirementData) {
   const req2c = requirementData?.["2C"] ?? {};
   const rule2c = req2c?._requirement ?? {};
   if (rule2c?.type === "elective-geoscience") {
-    // collect all courses already credited in other sections
+    // gather all courses already credited in other sections
     const used = new Set();
     for (const sec of Object.values(completed)) {
       if (!sec || typeof sec !== "object") continue;
@@ -164,8 +169,12 @@ function evaluateUserCourses(userCourses, requirementData) {
 
     const categoriesMatched = {};
     const allValid = [];
+    const available = {}; // show ALL options from JSON (minus any already used elsewhere)
     for (const [subject, list] of Object.entries(req2c)) {
       if (isMeta(subject)) continue;
+      const avail = [...new Set(list.filter((x) => !used.has(x)))];
+      if (avail.length) available[subject] = avail;
+
       const valid = [...new Set(list.filter((x) => userCourses.includes(x) && !used.has(x)))];
       if (valid.length) { categoriesMatched[subject] = valid; allValid.push(...valid); }
     }
@@ -177,6 +186,7 @@ function evaluateUserCourses(userCourses, requirementData) {
         completed_so_far: allValid.length,
         needed: (rule2c.min_total_courses || 0) - allValid.length,
         categories_matched: categoriesMatched,
+        available_courses: available,   // <— NEW: show all electives from the JSONs
       };
     }
   }
@@ -312,10 +322,10 @@ function Remaining2B({ remaining }) {
   );
 }
 
-// 2C renderer (special)
+// 2C renderer — shows electives from JSON
 function Remaining2C({ remaining }) {
   if (!remaining) return <div className="text-gray-400 text-sm">None</div>;
-  const { completed_so_far = 0, needed = 0, categories_matched = {} } = remaining;
+  const { completed_so_far = 0, needed = 0, available_courses = {}, categories_matched = {} } = remaining;
   return (
     <div>
       <div className="flex items-center gap-4 mb-3">
@@ -324,7 +334,15 @@ function Remaining2C({ remaining }) {
         <div className="ml-6 text-sm text-slate-500">NEEDED</div>
         <Badge>{needed}</Badge>
       </div>
-      <div className="text-lg font-semibold mb-2">Categories matched</div>
+
+      <div className="text-lg font-semibold mb-2">Available electives</div>
+      {Object.keys(available_courses).length ? (
+        <GenericList data={available_courses} />
+      ) : (
+        <div className="text-gray-400 text-sm">None</div>
+      )}
+
+      <div className="text-lg font-semibold mt-4 mb-2">Categories matched</div>
       {Object.keys(categories_matched).length ? (
         <GenericList data={categories_matched} />
       ) : (
@@ -354,7 +372,7 @@ function SectionCard({ title, sectionKey, completed = {}, remaining = {} }) {
   );
 }
 
-// Suggestions (unchanged)
+// Suggestions (now includes 2C electives from JSON)
 function computeSuggestions(remaining) {
   const order = ["1A", "1B", "2A", "2B", "2C"];
   const picks = [];
@@ -375,6 +393,12 @@ function computeSuggestions(remaining) {
         );
         picks.push({ section: `${sec} - ${group}`, need, options: pool });
       }
+    } else if (sec === "2C" && rem.available_courses) {
+      const need = rem.needed || 0;
+      const pool = Object.entries(rem.available_courses).flatMap(([cat, list]) =>
+        list.map((c) => ({ section: "2C", category: cat, course: c }))
+      );
+      if (pool.length) picks.push({ section: "2C electives", need, options: pool });
     } else if (typeof rem === "object") {
       const pool = Object.entries(rem).flatMap(([cat, list]) =>
         Array.isArray(list) ? list.map((c) => ({ section: sec, category: cat, course: c })) : []
@@ -410,8 +434,7 @@ function runSelfTests() {
     const courses = ["EARTH 231", "EARTH 223"];
     const { completed, remaining } = evaluateUserCourses(courses, GEOSCIENCE);
     const usedIn2A = !!completed?.["2A"]?.["Mineralogy and Petrology"];
-    const rem2C = remaining?.["2C"];
-    const done = rem2C ? rem2C.completed_so_far : Object.values(completed?.["2C"] || {}).flat().length;
+    const done = remaining?.["2C"] ? remaining["2C"].completed_so_far : Object.values(completed?.["2C"] || {}).flat().length;
     results.push({ name: "2C no double-counting", pass: usedIn2A && done === 1, details: { usedIn2A, done } });
   }
   return results;
@@ -422,8 +445,7 @@ function CourseMapperApp() {
   const [program, setProgram] = useLocal("cm:program", "Geoscience");
   const [rawCourses, setRawCourses] = useLocal(
     "cm:courses",
-    // include one 2C elective by default so you can see 2C working immediately
-    "CHEM 120, MATH 127, PHYS 111, CS 115, MATH 114, PHYS 112, STAT 202, EARTH 231, EARTH 235, EARTH 238, EARTH 221, EARTH 260, EARTH 342, EARTH 333"
+    "CHEM 120, MATH 127, PHYS 111, CS 115, MATH 114, PHYS 112, STAT 202, EARTH 231, EARTH 235, EARTH 238, EARTH 221, EARTH 260, EARTH 342"
   );
   const [courses, setCourses] = useLocal("cm:courses:parsed", []);
   const [requirementsMap, setRequirementsMap] = useLocal("cm:reqs:v3", DEFAULT_REQS);
@@ -603,7 +625,7 @@ function CourseMapperApp() {
         )}
 
         <footer className="text-center text-xs text-slate-500 mt-12">
-          Frontend mirrors your Python rules, avoids double-counting, and includes stream detection for Geoscience only.
+          Frontend mirrors your Python rules, avoids double-counting, and lists full 2C elective options from your JSONs.
         </footer>
       </div>
     </div>
