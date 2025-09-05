@@ -1,19 +1,20 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta charset="utf-8" />
     <title>Course Mapping Planner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- TailwindCSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React UMD + ReactDOM UMD -->
+  </head>
+  <body class="bg-slate-50">
+    <div id="root"></div>
+
+    <!-- React 18 UMD (dev builds; swap to production.min.js for prod) -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <!-- Babel to compile JSX in the browser for our JS file -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  </head>
-  <body class="min-h-screen bg-gradient-to-b from-slate-50 to-white text-slate-900">
-    <div id="root"></div>
-    <!-- Compile our JSX file in-browser -->
-    <script type="text/babel" data-presets="react" src="./course-mapper.js"></script>
+
+    <!-- Your app -->
+    <script src="./course-mapper.js"></script>
   </body>
 </html>
