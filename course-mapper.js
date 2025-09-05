@@ -1,3 +1,6 @@
+<!-- index.html should load React/ReactDOM UMD + Tailwind (or your CSS).
+This script tag can be in a separate .js file if you prefer. -->
+<script>
 /* Course Mapper App (browser build) */
 /* No imports/exports; relies on React UMD globals loaded in index.html */
 const { useEffect, useMemo, useState } = React;
@@ -5,7 +8,8 @@ const { useEffect, useMemo, useState } = React;
 // === Utility helpers ========================================================
 const uc = (s) => s.trim().toUpperCase();
 const isMeta = (k) => k.startsWith("_");
-const norm = (s) => s.toLowerCase().replace(/\s+/g, " ").replace(/\s*[\/,]\s*/g, " / ").trim();
+const norm = (s) =>
+  s.toLowerCase().replace(/\s+/g, " ").replace(/\s*[\/,]\s*/g, " / ").trim();
 const joinList = (arr) => (Array.isArray(arr) ? arr.join(", ") : String(arr || ""));
 
 // Persist simple state in localStorage
@@ -54,13 +58,11 @@ function evaluateUserCourses(userCourses, requirementData) {
   const req1a = requirementData?.["1A"] ?? {};
   const rule1a = req1a?._requirement ?? {};
   if (rule1a?.type === "all-categories-required") {
-    const c = {},
-      r = {};
+    const c = {}, r = {};
     Object.entries(req1a).forEach(([cat, list]) => {
       if (isMeta(cat)) return;
       const matched = [...new Set(userCourses.filter((x) => list.includes(x)))];
-      if (matched.length) c[cat] = matched;
-      else r[cat] = list;
+      if (matched.length) c[cat] = matched; else r[cat] = list;
     });
     if (Object.keys(c).length) completed["1A"] = c;
     if (Object.keys(r).length) remaining["1A"] = r;
@@ -70,8 +72,7 @@ function evaluateUserCourses(userCourses, requirementData) {
   const req1b = requirementData?.["1B"] ?? {};
   const rule1b = req1b?._requirement ?? {};
   if (rule1b?.type === "multi-category-limit") {
-    const c = {},
-      r = {};
+    const c = {}, r = {};
     let total = 0;
     for (const cat of rule1b.valid_categories || []) {
       const list = req1b?.[cat] || [];
@@ -98,13 +99,11 @@ function evaluateUserCourses(userCourses, requirementData) {
   const req2a = requirementData?.["2A"] ?? {};
   const rule2a = req2a?._requirement ?? {};
   if (rule2a?.type === "all-categories-required") {
-    const c = {},
-      r = {};
+    const c = {}, r = {};
     Object.entries(req2a).forEach(([cat, list]) => {
       if (isMeta(cat)) return;
       const matched = [...new Set(userCourses.filter((x) => list.includes(x)))];
-      if (matched.length) c[cat] = matched;
-      else r[cat] = list;
+      if (matched.length) c[cat] = matched; else r[cat] = list;
     });
     completed["2A"] = c;
     if (Object.keys(r).length) remaining["2A"] = r;
@@ -152,10 +151,11 @@ function evaluateUserCourses(userCourses, requirementData) {
     if (Object.keys(rem2b).length) remaining["2B"] = rem2b;
   }
 
-  // 2C (avoid double counting)
+  // 2C (avoid double counting) — SHOW PARTIAL COMPLETION + STRUCTURED REMAINING
   const req2c = requirementData?.["2C"] ?? {};
   const rule2c = req2c?._requirement ?? {};
   if (rule2c?.type === "elective-geoscience") {
+    // collect courses already used elsewhere
     const used = new Set();
     for (const sec of Object.values(completed)) {
       if (!sec || typeof sec !== "object") continue;
@@ -177,23 +177,30 @@ function evaluateUserCourses(userCourses, requirementData) {
       }
     }
 
-    const c = {};
+    const c = {};                       // matched electives by subject (partial OK)
+    const remainingByCat = {};          // electives you *could* still take
     const allValid = [];
+
     for (const [subject, list] of Object.entries(req2c)) {
       if (isMeta(subject)) continue;
-      const valid = [...new Set(list.filter((x) => userCourses.includes(x) && !used.has(x)))];
-      if (valid.length) {
-        c[subject] = valid;
-        allValid.push(...valid);
+      const matched = [...new Set(list.filter((x) => userCourses.includes(x) && !used.has(x)))];
+      if (matched.length) {
+        c[subject] = matched;
+        allValid.push(...matched);
       }
+      // what’s still available for this subject (not already used or taken)
+      const stillAvail = list.filter((x) => !used.has(x) && !matched.includes(x));
+      if (stillAvail.length) remainingByCat[subject] = stillAvail;
     }
-    if (allValid.length >= (rule2c.min_total_courses || 0)) {
-      completed["2C"] = c;
-    } else {
+
+    // always show partial completion if any
+    if (Object.keys(c).length) completed["2C"] = c;
+
+    const need = Math.max((rule2c.min_total_courses || 0) - allValid.length, 0);
+    if (need > 0 || Object.keys(remainingByCat).length) {
       remaining["2C"] = {
-        completed_so_far: allValid.length,
-        needed: (rule2c.min_total_courses || 0) - allValid.length,
-        categories_matched: c,
+        needed_more_courses: need,
+        remaining_by_category: remainingByCat,
       };
     }
   }
@@ -311,6 +318,36 @@ function Completed2B({ completed }) {
   );
 }
 
+/** Special renderer for Section 2C remaining (badge + by-category chips) */
+function Remaining2C({ remaining }) {
+  if (!remaining || !Object.keys(remaining).length) {
+    return <div className="text-gray-400 text-sm">None</div>;
+  }
+  const need = remaining.needed_more_courses || 0;
+  const data = remaining.remaining_by_category || {};
+  return (
+    <div className="space-y-3">
+      <div className="text-xs rounded-full px-2 py-0.5 bg-gray-100 inline-block">
+        Need ~ {need}
+      </div>
+      {Object.entries(data).length ? (
+        <div>
+          {Object.entries(data).map(([subject, list]) => (
+            <div key={subject} className="mb-1">
+              <span className="inline-flex items-center bg-gray-100 rounded-full px-3 py-1 text-sm shadow-sm mr-2 mb-2">
+                <span className="font-medium">{subject}:</span>
+                <span className="ml-2">{joinList(list)}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-gray-400 text-xs">No additional electives listed.</div>
+      )}
+    </div>
+  );
+}
+
 function GenericList({ data, labelize = (k) => k }) {
   const has = data && Object.keys(data).length > 0;
   if (!has) return <div className="text-gray-400 text-sm">None</div>;
@@ -336,6 +373,7 @@ function GenericList({ data, labelize = (k) => k }) {
 
 function SectionCard({ title, sectionKey, completed = {}, remaining = {} }) {
   const is2B = sectionKey === "2B";
+  const is2C = sectionKey === "2C";
   return (
     <div className="rounded-2xl shadow p-5 bg-white border border-gray-100">
       <h3 className="text-lg font-semibold mb-3">{title}</h3>
@@ -346,7 +384,13 @@ function SectionCard({ title, sectionKey, completed = {}, remaining = {} }) {
         </div>
         <div>
           <h4 className="font-medium text-rose-600 mb-2">Remaining</h4>
-          {is2B ? <Remaining2B remaining={remaining} /> : <GenericList data={remaining} />}
+          {is2B ? (
+            <Remaining2B remaining={remaining} />
+          ) : is2C ? (
+            <Remaining2C remaining={remaining} />
+          ) : (
+            <GenericList data={remaining} />
+          )}
         </div>
       </div>
     </div>
@@ -596,14 +640,15 @@ function CourseMapperApp() {
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(React.createElement(CourseMapperApp));
 
-/* ---------- Suggestions builder (unchanged) ---------- */
+/* ---------- Suggestions builder: add 2C handling like 1B ---------- */
 function computeSuggestions(remaining) {
   const order = ["1A", "1B", "2A", "2B", "2C"];
   const picks = [];
   for (const sec of order) {
     const rem = remaining?.[sec];
     if (!rem) continue;
-    if (sec === "1B" && rem.remaining_by_category) {
+
+    if ((sec === "1B" || sec === "2C") && rem.remaining_by_category) {
       const need = rem.needed_more_courses || 0;
       const pool = Object.entries(rem.remaining_by_category).flatMap(([cat, list]) =>
         list.map((c) => ({ section: sec, category: cat, course: c }))
@@ -627,7 +672,7 @@ function computeSuggestions(remaining) {
   return picks;
 }
 
-/* ---------- Self-tests (unchanged) ---------- */
+/* ---------- Self-tests (unchanged expectations) ---------- */
 function runSelfTests() {
   const results = [];
   {
@@ -669,3 +714,4 @@ function runSelfTests() {
   }
   return results;
 }
+</script>
