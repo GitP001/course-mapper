@@ -1,4 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+/* Course Mapper App (browser build) */
+/* No imports/exports; relies on React UMD globals loaded in index.html */
+const { useEffect, useMemo, useState } = React;
 
 // === Utility helpers ========================================================
 const uc = (s) => s.trim().toUpperCase();
@@ -107,7 +109,7 @@ function evaluateUserCourses(userCourses, requirementData) {
   const rule2b = req2b?.["_requirement"] ?? {};
   if (rule2b?.type === "subgroup-selection") {
     const comp2b = {};
-    const rem2b = {};
+    the_rem2b = {};
     const groupNames = Object.keys(req2b).filter((g) => !isMeta(g));
 
     for (const groupName of groupNames) {
@@ -132,14 +134,14 @@ function evaluateUserCourses(userCourses, requirementData) {
       }
       if (count >= (rule2b.min_per_group || 0)) comp2b[groupName] = groupCompleted;
       if (count < (rule2b.min_per_group || 0)) {
-        rem2b[groupName] = {
+        the_rem2b[groupName] = {
           needed_more_courses: (rule2b.min_per_group || 0) - count,
           remaining_subjects: groupRemaining,
         };
       }
     }
     completed["2B"] = comp2b;
-    if (Object.keys(rem2b).length) remaining["2B"] = rem2b;
+    if (Object.keys(the_rem2b).length) remaining["2B"] = the_rem2b;
   }
 
   // 2C: elective-geoscience (avoid double counting)
@@ -361,7 +363,7 @@ const SectionCard = ({ title, completed = {}, remaining = {} }) => {
   );
 };
 
-export default function CourseMapperApp() {
+function CourseMapperApp() {
   const [program, setProgram] = useLocal("cm:program", "Water Science");
   const [rawCourses, setRawCourses] = useLocal(
     "cm:courses",
@@ -383,7 +385,6 @@ export default function CourseMapperApp() {
         setRequirementsMap((prev) => ({ ...DEFAULT_REQS, ...prev }));
       }
     } catch {}
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const reqData = requirementsMap[program];
@@ -553,3 +554,7 @@ export default function CourseMapperApp() {
     </div>
   );
 }
+
+// Mount app to #root
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(CourseMapperApp));
